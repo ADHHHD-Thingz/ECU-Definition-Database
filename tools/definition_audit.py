@@ -39,7 +39,8 @@ def local_name(tag: str) -> str:
 
 
 def audit_xml(path: Path, size: int) -> dict:
-    result = {"xml_parse": "not_attempted", "map_count": 0, "eattributes_count": 0,
+    result = {"xml_parse": "not_attempted", "map_count": 0,
+              "eattributes_attribute_count": 0, "eattributes_element_count": 0,
               "ecu_struct_count": 0, "romid_count": 0, "xml_root": ""}
     if size > MAX_XML_BYTES:
         result["xml_parse"] = "skipped_size_limit"
@@ -53,8 +54,11 @@ def audit_xml(path: Path, size: int) -> dict:
             if tag == "map":
                 result["map_count"] += 1
             elif tag == "eattributes":
-                result["eattributes_count"] += 1
-            elif tag == "ecu_struct":
+                result["eattributes_element_count"] += 1
+            result["eattributes_attribute_count"] += sum(
+                1 for key in element.attrib if local_name(key) == "eattributes"
+            )
+            if tag == "ecu_struct":
                 result["ecu_struct_count"] += 1
             elif tag == "romid":
                 result["romid_count"] += 1
@@ -141,7 +145,9 @@ def main() -> int:
         "xml_parse_ok": sum(1 for r in records if r.get("xml_parse") == "ok"),
         "xml_parse_errors": sum(1 for r in records if r.get("xml_parse") == "error"),
         "maps": sum(r.get("map_count", 0) for r in records),
-        "eattributes": sum(r.get("eattributes_count", 0) for r in records),
+        "eattributes": sum(r.get("eattributes_attribute_count", 0) for r in records),
+        "eattributes_attribute_count": sum(r.get("eattributes_attribute_count", 0) for r in records),
+        "eattributes_element_count": sum(r.get("eattributes_element_count", 0) for r in records),
         "ecu_structs": sum(r.get("ecu_struct_count", 0) for r in records),
         "duplicate_hash_groups": len(duplicate_groups),
         "duplicate_files_beyond_first": sum(g["copies"] - 1 for g in duplicate_groups),
