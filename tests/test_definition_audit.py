@@ -21,9 +21,22 @@ class DefinitionAuditTests(unittest.TestCase):
             result = audit.audit_xml(path, path.stat().st_size)
             self.assertEqual(result["xml_parse"], "ok")
             self.assertEqual(result["map_count"], 2)
-            self.assertEqual(result["eattributes_count"], 2)
+            self.assertEqual(result["eattributes_element_count"], 2)
+            self.assertEqual(result["eattributes_attribute_count"], 0)
             self.assertEqual(result["ecu_struct_count"], 1)
             self.assertEqual(result["romid_count"], 1)
+
+    def test_xml_counts_eattributes_attributes(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "attrs.xml"
+            path.write_text(
+                '<root xmlns:x="urn:x"><map eattributes="AAA" /><map x:eattributes="BBB" /><map /></root>',
+                encoding="utf-8",
+            )
+            result = audit.audit_xml(path, path.stat().st_size)
+            self.assertEqual(result["map_count"], 3)
+            self.assertEqual(result["eattributes_attribute_count"], 2)
+            self.assertEqual(result["eattributes_element_count"], 0)
 
     def test_bad_xml_is_recorded(self):
         with tempfile.TemporaryDirectory() as temp:
